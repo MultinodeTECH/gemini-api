@@ -153,42 +153,77 @@ class GeminiBrowser {
         // Close any overlays/popups that might block input
         await this.dismissOverlays(page);
 
-        // Find the input field
-        const inputSelector = 'rich-textarea div[contenteditable="true"], div[contenteditable="true"]';
-        const input = await page.$(inputSelector);
+        // Use JavaScript to directly manipulate the DOM (works even when window is not visible)
+        const inputResult = await page.evaluate(async (text) => {
+            // Find the input field
+            const selectors = [
+                'rich-textarea div[contenteditable="true"]',
+                'div[contenteditable="true"]',
+                '[aria-label="Enter a prompt here"]'
+            ];
 
-        if (!input) {
-            throw new Error('Could not find input field');
-        }
+            let input = null;
+            for (const selector of selectors) {
+                input = document.querySelector(selector);
+                if (input) break;
+            }
 
-        // Use force click to bypass any remaining overlays
-        await input.click({ force: true });
-        await page.keyboard.press('Meta+a'); // Select all
-        await page.keyboard.press('Backspace'); // Delete
-        await page.waitForTimeout(100);
+            if (!input) {
+                return { success: false, error: 'Could not find input field' };
+            }
 
-        // Use clipboard to paste (fast and reliable)
-        await page.evaluate(async (text) => {
-            await navigator.clipboard.writeText(text);
+            // Focus and set content
+            input.focus();
+            input.textContent = text;
+
+            // Trigger input event to notify the app
+            input.dispatchEvent(new InputEvent('input', { bubbles: true, data: text }));
+
+            return { success: true };
         }, message);
 
-        await page.keyboard.press('Meta+v'); // Paste
+        if (!inputResult.success) {
+            throw new Error(inputResult.error);
+        }
+
         await page.waitForTimeout(500);
 
-        // Send message
-        const sendButton = await page.$('button[aria-label="Send message"], button[aria-label="发送"]');
-        if (sendButton) {
-            const isEnabled = await sendButton.evaluate(btn => !btn.disabled);
-            if (isEnabled) {
-                await sendButton.click();
-            } else {
-                // Wait a bit more for the button to enable
-                await page.waitForTimeout(300);
-                await sendButton.click();
+        // Click send button using JavaScript
+        const sendResult = await page.evaluate(async () => {
+            const selectors = [
+                'button[aria-label="Send message"]',
+                'button[aria-label="发送"]',
+                'button[data-test-id="send-button"]',
+                '.send-button'
+            ];
+
+            let button = null;
+            for (const selector of selectors) {
+                button = document.querySelector(selector);
+                if (button && !button.disabled) break;
             }
-        } else {
+
+            if (button) {
+                button.click();
+                return { success: true, method: 'button' };
+            }
+
+            // Fallback: simulate Enter key on the input
+            const input = document.querySelector('rich-textarea div[contenteditable="true"], div[contenteditable="true"]');
+            if (input) {
+                input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+                return { success: true, method: 'enter' };
+            }
+
+            return { success: false, error: 'Could not find send button' };
+        });
+
+        if (!sendResult.success) {
+            // Fallback to keyboard
             await page.keyboard.press('Enter');
         }
+
+        console.log(`📤 [Account ${accountId}] Message sent via ${sendResult.method || 'keyboard'}`);
 
         // Wait for response
         const response = await this.waitForResponse(page);
@@ -330,6 +365,43 @@ class GeminiBrowser {
 
     getActiveAccounts() {
         return Array.from(this.accounts.keys());
+    }
+
+    // Get current page URL for an account
+    async getCurrentUrl(accountId = '0') {
+        if (!this.accounts.has(accountId)) {
+            return null;
+        }
+        const account = this.accounts.get(accountId);
+        return account.page.url();
+    }
+
+    // Navigate to a specific conversation URL
+    async navigateToConversation(accountId, url) {
+        if (!this.isConnected) {
+            await this.connect();
+        }
+
+        console.log(`🔗 [Account ${accountId}] Navigating to: ${url}`);
+
+        let page;
+        if (this.accounts.has(accountId)) {
+            page = this.accounts.get(accountId).page;
+        } else {
+            page = await this.context.newPage();
+        }
+
+        await page.goto(url, {
+            waitUntil: 'domcontentloaded',
+            timeout: 30000,
+        });
+        await page.waitForTimeout(3000);
+        await this.waitForReady(page);
+
+        this.accounts.set(accountId, { page, isReady: true });
+        console.log(`✅ [Account ${accountId}] Restored conversation`);
+
+        return page;
     }
 
     async close() {

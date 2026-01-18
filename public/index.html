@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gemini Chat</title>
+    <title>Gemini 聊天室</title>
     <style>
         * {
             margin: 0;
@@ -13,14 +13,18 @@
         }
 
         :root {
-            --bg-primary: #0f0f0f;
-            --bg-secondary: #1a1a1a;
-            --bg-tertiary: #2a2a2a;
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a25;
+            --bg-hover: #22222f;
             --text-primary: #ffffff;
-            --text-secondary: #a0a0a0;
+            --text-secondary: #8b8b9e;
             --accent: #8b5cf6;
-            --user-bubble: #3b82f6;
-            --ai-bubble: #2a2a2a;
+            --user-color: #3b82f6;
+            --agent-1: #f97316;
+            --agent-2: #22c55e;
+            --agent-3: #ec4899;
+            --border: rgba(255, 255, 255, 0.08);
         }
 
         body {
@@ -32,133 +36,410 @@
             flex-direction: column;
         }
 
+        /* Header */
         .header {
-            background: linear-gradient(135deg, var(--accent) 0%, #6366f1 100%);
-            padding: 12px 16px;
+            background: linear-gradient(135deg, #1a1a25 0%, #12121a 100%);
+            padding: 16px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            border-bottom: 1px solid var(--border);
             flex-shrink: 0;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
         .header h1 {
             font-size: 18px;
             font-weight: 600;
+            background: linear-gradient(135deg, #8b5cf6, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .header-actions {
+        .online-count {
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: var(--bg-tertiary);
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .online-count .dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: #22c55e;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Agent Sidebar */
+        .main-container {
             display: flex;
-            gap: 8px;
+            flex: 1;
+            overflow: hidden;
         }
 
-        .header-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            cursor: pointer;
-        }
-
-        .header-btn:active {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        /* Account Selector Bar */
-        .account-bar {
+        .sidebar {
+            width: 280px;
             background: var(--bg-secondary);
-            padding: 10px 16px;
+            border-right: 1px solid var(--border);
             display: flex;
-            gap: 8px;
-            border-bottom: 1px solid var(--bg-tertiary);
+            flex-direction: column;
             flex-shrink: 0;
         }
 
-        .account-btn {
-            background: var(--bg-tertiary);
-            border: none;
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
             color: var(--text-secondary);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .account-btn.active {
+        /* Room List Styles */
+        .room-list {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .room-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+        }
+
+        .room-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .room-item.active {
             background: var(--accent);
             color: white;
         }
 
-        .account-btn .dot {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            margin-right: 6px;
+        .room-item .room-icon {
+            font-size: 16px;
         }
 
-        .account-btn .dot.online {
+        .room-item .room-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .room-item .room-name {
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .room-item .room-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .room-item.active .room-meta {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .new-room-btn {
+            background: var(--accent);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .new-room-btn:hover {
+            background: #7c3aed;
+            transform: scale(1.1);
+        }
+
+        .agent-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .agent-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+        }
+
+        .agent-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .agent-item.selected {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+        }
+
+        .agent-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+            position: relative;
+        }
+
+        .agent-1 .agent-avatar {
+            background: linear-gradient(135deg, var(--agent-1), #fb923c);
+        }
+
+        .agent-2 .agent-avatar {
+            background: linear-gradient(135deg, var(--agent-2), #4ade80);
+        }
+
+        .agent-3 .agent-avatar {
+            background: linear-gradient(135deg, var(--agent-3), #f472b6);
+        }
+
+        .agent-all .agent-avatar {
+            background: linear-gradient(135deg, var(--accent), #6366f1);
+        }
+
+        .agent-status {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid var(--bg-secondary);
+        }
+
+        .agent-status.online {
             background: #22c55e;
         }
 
-        .account-btn .dot.offline {
+        .agent-status.offline {
             background: #6b7280;
         }
 
-        .chat-container {
+        .agent-info {
             flex: 1;
-            overflow-y: auto;
-            padding: 16px;
+            min-width: 0;
+        }
+
+        .agent-name {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .agent-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
             display: flex;
             flex-direction: column;
+            background: var(--bg-primary);
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
             gap: 12px;
         }
 
-        .message {
-            max-width: 85%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            line-height: 1.5;
-            font-size: 15px;
-            animation: fadeIn 0.3s ease;
-            white-space: pre-wrap;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .message.user {
-            background: var(--user-bubble);
+        .chat-header-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
             color: white;
+        }
+
+        .chat-header-info h2 {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .chat-header-info p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Messages */
+        .message-group {
+            display: flex;
+            gap: 12px;
+            max-width: 85%;
+        }
+
+        .message-group.user {
             align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .message-avatar.user {
+            background: var(--user-color);
+        }
+
+        .message-avatar.agent-1 {
+            background: linear-gradient(135deg, var(--agent-1), #fb923c);
+        }
+
+        .message-avatar.agent-2 {
+            background: linear-gradient(135deg, var(--agent-2), #4ade80);
+        }
+
+        .message-avatar.agent-3 {
+            background: linear-gradient(135deg, var(--agent-3), #f472b6);
+        }
+
+        .message-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .message-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .message-name.agent-1 {
+            color: var(--agent-1);
+        }
+
+        .message-name.agent-2 {
+            color: var(--agent-2);
+        }
+
+        .message-name.agent-3 {
+            color: var(--agent-3);
+        }
+
+        .message-name.user {
+            color: var(--user-color);
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .message-bubble {
+            background: var(--bg-secondary);
+            padding: 12px 16px;
+            border-radius: 16px;
+            line-height: 1.5;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .message-group.user .message-bubble {
+            background: linear-gradient(135deg, var(--user-color), #60a5fa);
             border-bottom-right-radius: 4px;
         }
 
-        .message.ai {
-            background: var(--ai-bubble);
-            color: var(--text-primary);
-            align-self: flex-start;
+        .message-group:not(.user) .message-bubble {
             border-bottom-left-radius: 4px;
         }
 
-        .message.loading {
+        /* Typing indicator */
+        .typing-indicator {
             display: flex;
-            gap: 4px;
-            padding: 16px 20px;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            width: fit-content;
         }
 
-        .message.loading span {
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
             width: 8px;
             height: 8px;
             background: var(--text-secondary);
@@ -166,11 +447,11 @@
             animation: bounce 1.4s infinite ease-in-out both;
         }
 
-        .message.loading span:nth-child(1) {
+        .typing-dots span:nth-child(1) {
             animation-delay: -0.32s;
         }
 
-        .message.loading span:nth-child(2) {
+        .typing-dots span:nth-child(2) {
             animation-delay: -0.16s;
         }
 
@@ -179,20 +460,73 @@
             0%,
             80%,
             100% {
-                transform: scale(0);
+                transform: scale(0.6);
+                opacity: 0.6;
             }
 
             40% {
                 transform: scale(1);
+                opacity: 1;
             }
         }
 
-        .input-container {
+        /* Input Area */
+        .input-area {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
             background: var(--bg-secondary);
-            padding: 12px 16px;
-            padding-bottom: max(12px, env(safe-area-inset-bottom));
-            border-top: 1px solid var(--bg-tertiary);
-            flex-shrink: 0;
+        }
+
+        .mention-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .mention-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mention-chip:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+
+        .mention-chip.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .mention-chip .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .mention-chip.agent-1 .dot {
+            background: var(--agent-1);
+        }
+
+        .mention-chip.agent-2 .dot {
+            background: var(--agent-2);
+        }
+
+        .mention-chip.agent-3 .dot {
+            background: var(--agent-3);
+        }
+
+        .mention-chip.all .dot {
+            background: linear-gradient(135deg, var(--accent), #6366f1);
         }
 
         .input-wrapper {
@@ -204,15 +538,20 @@
         .input-wrapper textarea {
             flex: 1;
             background: var(--bg-tertiary);
-            border: none;
+            border: 1px solid var(--border);
             border-radius: 24px;
             padding: 12px 18px;
             color: var(--text-primary);
-            font-size: 16px;
+            font-size: 14px;
             resize: none;
             max-height: 120px;
             outline: none;
             font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .input-wrapper textarea:focus {
+            border-color: var(--accent);
         }
 
         .input-wrapper textarea::placeholder {
@@ -220,13 +559,13 @@
         }
 
         .send-btn {
-            width: 48px;
-            height: 48px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
-            background: var(--accent);
+            background: linear-gradient(135deg, var(--accent), #6366f1);
             border: none;
             color: white;
-            font-size: 20px;
+            font-size: 18px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -235,27 +574,17 @@
             flex-shrink: 0;
         }
 
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
         .send-btn:disabled {
             background: var(--bg-tertiary);
             cursor: not-allowed;
+            transform: none;
         }
 
-        .status {
-            text-align: center;
-            padding: 6px;
-            font-size: 11px;
-            color: var(--text-secondary);
-            background: var(--bg-secondary);
-        }
-
-        .status.error {
-            color: #ef4444;
-        }
-
-        .status.connected {
-            color: #22c55e;
-        }
-
+        /* Empty State */
         .empty-state {
             flex: 1;
             display: flex;
@@ -263,15 +592,27 @@
             align-items: center;
             justify-content: center;
             color: var(--text-secondary);
-            gap: 12px;
+            gap: 16px;
             padding: 40px;
             text-align: center;
         }
 
         .empty-state .icon {
-            font-size: 48px;
+            font-size: 64px;
+            opacity: 0.5;
         }
 
+        .empty-state h3 {
+            font-size: 18px;
+            color: var(--text-primary);
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            max-width: 300px;
+        }
+
+        /* Toast */
         .toast {
             position: fixed;
             bottom: 100px;
@@ -285,48 +626,304 @@
             opacity: 0;
             transition: opacity 0.3s;
             z-index: 100;
+            border: 1px solid var(--border);
         }
 
         .toast.show {
             opacity: 1;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .mention-bar {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                padding-bottom: 4px;
+            }
+
+            .mention-chip {
+                flex-shrink: 0;
+            }
+        }
+
+        /* Discussion Mode Indicator */
+        .discussion-badge {
+            background: linear-gradient(135deg, var(--accent), #6366f1);
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+
+        /* Mode Toggle */
+        .mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            margin-left: 12px;
+        }
+
+        .mode-toggle label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .mode-toggle input[type="checkbox"] {
+            display: none;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 40px;
+            height: 20px;
+            background: var(--bg-hover);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .mode-toggle input:checked+.toggle-switch {
+            background: var(--accent);
+        }
+
+        .mode-toggle input:checked+.toggle-switch::after {
+            transform: translateX(20px);
+        }
+
+        /* Phase Progress */
+        .phase-progress {
+            display: none;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .phase-progress.active {
+            display: block;
+        }
+
+        .phase-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--accent);
+        }
+
+        .phase-steps {
+            display: flex;
+            gap: 8px;
+        }
+
+        .phase-step {
+            flex: 1;
+            padding: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-secondary);
+            transition: all 0.3s;
+        }
+
+        .phase-step.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .phase-step.done {
+            background: #22c55e;
+            color: white;
+        }
+
+        .phase-step .phase-icon {
+            font-size: 16px;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .header-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
         }
     </style>
 </head>
 
 <body>
     <div class="header">
-        <h1>✨ Gemini</h1>
-        <div class="header-actions">
-            <button class="header-btn" onclick="startNewChat()">🔄 新对话</button>
+        <div class="header-title">
+            <h1>✨ Gemini 聊天室</h1>
+            <span class="online-count"><span class="dot"></span><span id="onlineCount">0</span> 在线</span>
+        </div>
+        <div class="header-actions" style="display: flex; align-items: center;">
+            <button class="header-btn" onclick="startNewChatForAll()" title="让所有 Agent 开始新对话">🔄 新对话</button>
+            <div class="mode-toggle">
+                <label for="discussModeToggle">串行</label>
+                <input type="checkbox" id="discussModeToggle" onchange="toggleDiscussMode()">
+                <span class="toggle-switch" onclick="document.getElementById('discussModeToggle').click()"></span>
+                <label for="discussModeToggle">并行V2</label>
+            </div>
         </div>
     </div>
 
-    <div class="account-bar" id="accountBar">
-        <button class="account-btn active" data-account="0" onclick="selectAccount('0')">
-            <span class="dot offline"></span>账号 1
-        </button>
-        <button class="account-btn" data-account="1" onclick="selectAccount('1')">
-            <span class="dot offline"></span>账号 2
-        </button>
-        <button class="account-btn" data-account="2" onclick="selectAccount('2')">
-            <span class="dot offline"></span>账号 3
-        </button>
-    </div>
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Room List Section -->
+            <div class="sidebar-section">
+                <div class="sidebar-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>💬 对话列表</span>
+                    <button class="new-room-btn" onclick="createRoom()" title="新建对话">+</button>
+                </div>
+                <div class="room-list" id="roomList">
+                    <!-- Rooms will be populated here -->
+                </div>
+            </div>
 
-    <div class="chat-container" id="chatContainer">
-        <div class="empty-state" id="emptyState">
-            <div class="icon">💬</div>
-            <div>发送消息开始对话</div>
-            <div style="font-size: 13px; opacity: 0.7;">当前: 账号 1</div>
+            <!-- Divider -->
+            <div style="border-top: 1px solid var(--border); margin: 8px 0;"></div>
+
+            <!-- Agent List Section -->
+            <div class="sidebar-header">成员列表</div>
+            <div class="agent-list">
+                <div class="agent-item agent-all selected" data-target="all" onclick="selectTarget('all')">
+                    <div class="agent-avatar">👥</div>
+                    <div class="agent-info">
+                        <div class="agent-name">所有人</div>
+                        <div class="agent-desc">向所有 Agent 发起讨论</div>
+                    </div>
+                </div>
+                <div class="agent-item agent-1" data-target="1" onclick="selectTarget('1')">
+                    <div class="agent-avatar">
+                        🔍
+                        <span class="agent-status offline" id="status-1"></span>
+                    </div>
+                    <div class="agent-info">
+                        <div class="agent-name">Agent 1</div>
+                        <div class="agent-desc">分析师 - 深度分析问题</div>
+                    </div>
+                </div>
+                <div class="agent-item agent-2" data-target="2" onclick="selectTarget('2')">
+                    <div class="agent-avatar">
+                        📋
+                        <span class="agent-status offline" id="status-2"></span>
+                    </div>
+                    <div class="agent-info">
+                        <div class="agent-name">Agent 2</div>
+                        <div class="agent-desc">评审员 - 提供建议改进</div>
+                    </div>
+                </div>
+                <div class="agent-item agent-3" data-target="3" onclick="selectTarget('3')">
+                    <div class="agent-avatar">
+                        💡
+                        <span class="agent-status offline" id="status-3"></span>
+                    </div>
+                    <div class="agent-info">
+                        <div class="agent-name">Agent 3</div>
+                        <div class="agent-desc">总结者 - 整合最终答案</div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="status" id="status">连接中...</div>
+        <!-- Chat Area -->
+        <div class="chat-area">
+            <div class="chat-header">
+                <div class="chat-header-avatar" id="chatAvatar"
+                    style="background: linear-gradient(135deg, #8b5cf6, #6366f1);">👥</div>
+                <div class="chat-header-info">
+                    <h2 id="chatTitle">所有人</h2>
+                    <p id="chatDesc">向所有 Agent 发起讨论</p>
+                </div>
+            </div>
 
-    <div class="input-container">
-        <div class="input-wrapper">
-            <textarea id="messageInput" placeholder="输入消息..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
-            <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+            <!-- Phase Progress for V2 Discussion -->
+            <div class="phase-progress" id="phaseProgress">
+                <div class="phase-title">⚡ 并行讨论进度</div>
+                <div class="phase-steps">
+                    <div class="phase-step" id="phase-1">
+                        <span class="phase-icon">📋</span>
+                        任务拆分
+                    </div>
+                    <div class="phase-step" id="phase-2">
+                        <span class="phase-icon">⚡</span>
+                        并行执行
+                    </div>
+                    <div class="phase-step" id="phase-3">
+                        <span class="phase-icon">🔍</span>
+                        交叉评审
+                    </div>
+                    <div class="phase-step" id="phase-4">
+                        <span class="phase-icon">📝</span>
+                        综合汇总
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="empty-state">
+                    <div class="icon">💬</div>
+                    <h3>开始聊天</h3>
+                    <p>你可以向单个 Agent 提问，也可以让所有人一起讨论</p>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="mention-bar">
+                    <div class="mention-chip all active" data-target="all" onclick="selectTarget('all')">
+                        <span class="dot"></span>
+                        @所有人
+                    </div>
+                    <div class="mention-chip agent-1" data-target="1" onclick="selectTarget('1')">
+                        <span class="dot"></span>
+                        @Agent 1
+                    </div>
+                    <div class="mention-chip agent-2" data-target="2" onclick="selectTarget('2')">
+                        <span class="dot"></span>
+                        @Agent 2
+                    </div>
+                    <div class="mention-chip agent-3" data-target="3" onclick="selectTarget('3')">
+                        <span class="dot"></span>
+                        @Agent 3
+                    </div>
+                </div>
+                <div class="input-wrapper">
+                    <textarea id="messageInput" placeholder="输入消息..." rows="1"
+                        onkeydown="handleKeyDown(event)"></textarea>
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -335,11 +932,43 @@
     <script>
         const API_BASE = window.location.origin;
         let isLoading = false;
-        let currentAccount = '0';
+        let currentTarget = 'all';
         let activeAccounts = [];
+        let chatHistory = [];
+        let currentRoomId = null;
+        let rooms = [];
 
-        // Store chat history per account
-        const chatHistory = { '0': [], '1': [], '2': [] };
+        const agentInfo = {
+            '1': { name: 'Agent 1', emoji: '🔍', role: '分析师', color: 'agent-1' },
+            '2': { name: 'Agent 2', emoji: '📋', role: '评审员', color: 'agent-2' },
+            '3': { name: 'Agent 3', emoji: '💡', role: '总结者', color: 'agent-3' }
+        };
+
+        let discussModeV2 = false;
+
+        function toggleDiscussMode() {
+            discussModeV2 = document.getElementById('discussModeToggle').checked;
+            showToast(discussModeV2 ? '已切换到并行V2模式' : '已切换到串行模式');
+        }
+
+        function setPhaseActive(phaseNum) {
+            for (let i = 1; i <= 4; i++) {
+                const el = document.getElementById(`phase-${i}`);
+                el.classList.remove('active', 'done');
+                if (i < phaseNum) el.classList.add('done');
+                if (i === phaseNum) el.classList.add('active');
+            }
+        }
+
+        function showPhaseProgress(show) {
+            const panel = document.getElementById('phaseProgress');
+            if (show) {
+                panel.classList.add('active');
+                setPhaseActive(1);
+            } else {
+                panel.classList.remove('active');
+            }
+        }
 
         const textarea = document.getElementById('messageInput');
         textarea.addEventListener('input', function () {
@@ -354,85 +983,122 @@
             setTimeout(() => toast.classList.remove('show'), 2000);
         }
 
-        function selectAccount(accountId) {
-            currentAccount = accountId;
+        function selectTarget(target) {
+            currentTarget = target;
 
-            // Update button states
-            document.querySelectorAll('.account-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.account === accountId);
+            // Update sidebar
+            document.querySelectorAll('.agent-item').forEach(item => {
+                item.classList.toggle('selected', item.dataset.target === target);
             });
 
-            // Render chat history for this account
-            renderChatHistory();
+            // Update mention chips
+            document.querySelectorAll('.mention-chip').forEach(chip => {
+                chip.classList.toggle('active', chip.dataset.target === target);
+            });
 
-            showToast(`已切换到账号 ${parseInt(accountId) + 1}`);
-        }
+            // Update chat header
+            updateChatHeader(target);
 
-        function renderChatHistory() {
-            const container = document.getElementById('chatContainer');
-            const history = chatHistory[currentAccount];
-
-            if (history.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state" id="emptyState">
-                        <div class="icon">💬</div>
-                        <div>发送消息开始对话</div>
-                        <div style="font-size: 13px; opacity: 0.7;">当前: 账号 ${parseInt(currentAccount) + 1}</div>
-                    </div>
-                `;
+            // Update placeholder
+            if (target === 'all') {
+                textarea.placeholder = '向所有 Agent 发起讨论...';
             } else {
-                container.innerHTML = '';
-                history.forEach(msg => {
-                    const div = document.createElement('div');
-                    div.className = `message ${msg.isUser ? 'user' : 'ai'}`;
-                    div.textContent = msg.text;
-                    container.appendChild(div);
-                });
-                container.scrollTop = container.scrollHeight;
+                textarea.placeholder = `向 Agent ${target} 提问...`;
             }
         }
 
-        async function startNewChat() {
-            try {
-                await fetch(`${API_BASE}/new-chat`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ account: currentAccount })
-                });
+        function updateChatHeader(target) {
+            const avatar = document.getElementById('chatAvatar');
+            const title = document.getElementById('chatTitle');
+            const desc = document.getElementById('chatDesc');
 
-                chatHistory[currentAccount] = [];
-                renderChatHistory();
-                showToast('已开始新对话');
-            } catch (e) {
-                showToast('开始新对话失败');
+            if (target === 'all') {
+                avatar.innerHTML = '👥';
+                avatar.style.background = 'linear-gradient(135deg, #8b5cf6, #6366f1)';
+                title.textContent = '所有人';
+                desc.textContent = '向所有 Agent 发起讨论';
+            } else {
+                const info = agentInfo[target];
+                avatar.innerHTML = info.emoji;
+                avatar.className = `chat-header-avatar ${info.color}`;
+                title.textContent = info.name;
+                desc.textContent = info.role;
             }
         }
 
-        async function checkHealth() {
-            try {
-                const res = await fetch(`${API_BASE}/health`);
-                const data = await res.json();
-
-                if (data.status === 'ok') {
-                    document.getElementById('status').textContent = '✓ 已连接';
-                    document.getElementById('status').className = 'status connected';
-
-                    // Update active account indicators
-                    activeAccounts = data.activeAccounts || [];
-                    updateAccountStatus();
-                }
-            } catch (e) {
-                document.getElementById('status').textContent = '✗ 连接失败';
-                document.getElementById('status').className = 'status error';
-            }
+        function formatTime(date) {
+            return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
         }
 
-        function updateAccountStatus() {
-            document.querySelectorAll('.account-btn').forEach(btn => {
-                const dot = btn.querySelector('.dot');
-                const isActive = activeAccounts.includes(btn.dataset.account);
-                dot.className = `dot ${isActive ? 'online' : 'offline'}`;
-            });
+        function addMessage(content, sender, agentId = null) {
+            const container = document.getElementById('chatMessages');
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+
+            const time = formatTime(new Date());
+            const isUser = sender === 'user';
+
+            const group = document.createElement('div');
+            group.className = `message-group ${isUser ? 'user' : ''}`;
+
+            let avatarClass = 'user';
+            let name = '你';
+            let nameClass = 'user';
+
+            if (!isUser && agentId) {
+                const info = agentInfo[agentId];
+                avatarClass = info.color;
+                name = info.name;
+                nameClass = info.color;
+            }
+
+            group.innerHTML = `
+                <div class="message-avatar ${avatarClass}">${isUser ? '👤' : agentInfo[agentId]?.emoji || '🤖'}</div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-name ${nameClass}">${name}</span>
+                        <span class="message-time">${time}</span>
+                    </div>
+                    <div class="message-bubble">${content}</div>
+                </div>
+            `;
+
+            container.appendChild(group);
+            container.scrollTop = container.scrollHeight;
+
+            chatHistory.push({ content, sender, agentId, time });
+        }
+
+        function addTypingIndicator(agentId) {
+            const container = document.getElementById('chatMessages');
+            const info = agentInfo[agentId];
+
+            const group = document.createElement('div');
+            group.className = 'message-group';
+            group.id = `typing-${agentId}`;
+
+            group.innerHTML = `
+                <div class="message-avatar ${info.color}">${info.emoji}</div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-name ${info.color}">${info.name}</span>
+                    </div>
+                    <div class="typing-indicator">
+                        <span style="font-size: 12px; color: var(--text-secondary);">正在输入</span>
+                        <div class="typing-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(group);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function removeTypingIndicator(agentId) {
+            const indicator = document.getElementById(`typing-${agentId}`);
+            if (indicator) indicator.remove();
         }
 
         function handleKeyDown(e) {
@@ -440,36 +1106,6 @@
                 e.preventDefault();
                 sendMessage();
             }
-        }
-
-        function addMessage(text, isUser) {
-            const container = document.getElementById('chatContainer');
-            const emptyState = document.getElementById('emptyState');
-            if (emptyState) emptyState.remove();
-
-            // Save to history
-            chatHistory[currentAccount].push({ text, isUser });
-
-            const msg = document.createElement('div');
-            msg.className = `message ${isUser ? 'user' : 'ai'}`;
-            msg.textContent = text;
-            container.appendChild(msg);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function addLoading() {
-            const container = document.getElementById('chatContainer');
-            const msg = document.createElement('div');
-            msg.className = 'message ai loading';
-            msg.id = 'loadingMsg';
-            msg.innerHTML = '<span></span><span></span><span></span>';
-            container.appendChild(msg);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function removeLoading() {
-            const loading = document.getElementById('loadingMsg');
-            if (loading) loading.remove();
         }
 
         async function sendMessage() {
@@ -480,36 +1116,21 @@
 
             isLoading = true;
             document.getElementById('sendBtn').disabled = true;
-
-            addMessage(message, true);
             input.value = '';
             input.style.height = 'auto';
 
-            addLoading();
+            // Add user message
+            const targetLabel = currentTarget === 'all' ? '@所有人' : `@Agent ${currentTarget}`;
+            addMessage(`${targetLabel} ${message}`, 'user');
 
-            try {
-                const res = await fetch(`${API_BASE}/chat`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message,
-                        account: currentAccount
-                    })
-                });
-
-                removeLoading();
-
-                const data = await res.json();
-                if (data.success) {
-                    addMessage(data.response, false);
-                    // Refresh account status
-                    checkHealth();
+            if (currentTarget === 'all') {
+                if (discussModeV2) {
+                    await sendDiscussionV2(message);
                 } else {
-                    addMessage('❌ ' + (data.error || '发送失败'), false);
+                    await sendDiscussion(message);
                 }
-            } catch (e) {
-                removeLoading();
-                addMessage('❌ 网络错误', false);
+            } else {
+                await sendToAgent(message, currentTarget);
             }
 
             isLoading = false;
@@ -517,8 +1138,316 @@
             input.focus();
         }
 
+        async function sendToAgent(message, agentId) {
+            addTypingIndicator(agentId);
+
+            try {
+                const res = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, account: agentId, roomId: currentRoomId })
+                });
+
+                removeTypingIndicator(agentId);
+
+                const data = await res.json();
+                if (data.success) {
+                    addMessage(data.response, 'agent', agentId);
+                } else {
+                    addMessage('❌ ' + (data.error || '发送失败'), 'agent', agentId);
+                }
+            } catch (e) {
+                removeTypingIndicator(agentId);
+                addMessage('❌ 网络错误', 'agent', agentId);
+            }
+        }
+
+        async function sendDiscussion(question) {
+            // Show typing for all agents
+            ['1', '2', '3'].forEach(id => addTypingIndicator(id));
+
+            try {
+                const res = await fetch(`${API_BASE}/discuss`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question, rounds: 1, newChat: false, roomId: currentRoomId })
+                });
+
+                // Remove all typing indicators
+                ['1', '2', '3'].forEach(id => removeTypingIndicator(id));
+
+                const data = await res.json();
+                if (data.success) {
+                    // Add each expert's response
+                    const agentMap = { '专家A': '1', '专家B': '2', '专家C': '3' };
+
+                    data.discussion.forEach(item => {
+                        const agentId = agentMap[item.name];
+                        addMessage(item.response, 'agent', agentId);
+                    });
+
+                    showToast(`讨论完成！`);
+                } else {
+                    addMessage('❌ ' + (data.error || '讨论失败'), 'agent', '1');
+                }
+            } catch (e) {
+                ['1', '2', '3'].forEach(id => removeTypingIndicator(id));
+                addMessage('❌ 网络错误', 'agent', '1');
+            }
+        }
+
+        async function sendDiscussionV2(question) {
+            // Show phase progress panel
+            showPhaseProgress(true);
+
+            try {
+                const res = await fetch(`${API_BASE}/discuss-v2`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question, roomId: currentRoomId })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    // Phase 1: Task Splitting
+                    setPhaseActive(2);
+                    const subtasks = data.phases[0]?.result?.subtasks || [];
+                    addMessage(`📋 **任务拆分完成**\n${subtasks.map((t, i) => `${i + 1}. ${t.task} (${t.focus})`).join('\n')}`, 'agent', '1');
+
+                    // Phase 2: Parallel Execution
+                    setPhaseActive(3);
+                    const execResults = data.phases[1]?.results || [];
+                    for (const result of execResults) {
+                        addMessage(result.response, 'agent', result.account);
+                    }
+
+                    // Phase 3: Cross-Review
+                    setPhaseActive(4);
+                    const reviewResults = data.phases[2]?.results || [];
+                    for (const result of reviewResults) {
+                        addMessage(`🔍 **评审 Agent ${result.targetAgent}**\n${result.review}`, 'agent', result.reviewer);
+                    }
+
+                    // Phase 4: Final Summary
+                    addMessage(`📝 **最终汇总**\n${data.finalAnswer}`, 'agent', '1');
+
+                    // Show timing
+                    const timing = data.timing;
+                    showToast(`完成! 并行执行: ${(timing.phase2 / 1000).toFixed(1)}s, 并行评审: ${(timing.phase3 / 1000).toFixed(1)}s`);
+                } else {
+                    addMessage('❌ ' + (data.error || '讨论失败'), 'agent', '1');
+                }
+            } catch (e) {
+                addMessage('❌ 网络错误: ' + e.message, 'agent', '1');
+            } finally {
+                showPhaseProgress(false);
+            }
+        }
+
+        async function startNewChatForAll() {
+            showToast('正在开启新对话...');
+            try {
+                // Start new chats for all agents
+                for (const id of ['1', '2', '3']) {
+                    await fetch(`${API_BASE}/new-chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ account: id })
+                    });
+                }
+                // Clear local chat history
+                chatHistory = [];
+                document.getElementById('chatMessages').innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">💬</div>
+                        <h3>新对话已开始</h3>
+                        <p>所有 Agent 已开启新对话，可以开始新的讨论了</p>
+                    </div>
+                `;
+                showToast('所有 Agent 已开启新对话');
+            } catch (e) {
+                showToast('开启新对话失败');
+            }
+        }
+
+        async function checkHealth() {
+            try {
+                const res = await fetch(`${API_BASE}/health`);
+                const data = await res.json();
+
+                if (data.status === 'ok') {
+                    activeAccounts = data.activeAccounts || [];
+                    document.getElementById('onlineCount').textContent = activeAccounts.length;
+
+                    // Update status indicators
+                    ['1', '2', '3'].forEach(id => {
+                        const status = document.getElementById(`status-${id}`);
+                        if (status) {
+                            status.className = `agent-status ${activeAccounts.includes(id) ? 'online' : 'offline'}`;
+                        }
+                    });
+                }
+            } catch (e) {
+                document.getElementById('onlineCount').textContent = '0';
+            }
+        }
+
+        // ============== Room Management ==============
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+
+            if (diff < 60000) return '刚刚';
+            if (diff < 3600000) return Math.floor(diff / 60000) + ' 分钟前';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + ' 小时前';
+            if (diff < 604800000) return Math.floor(diff / 86400000) + ' 天前';
+            return date.toLocaleDateString('zh-CN');
+        }
+
+        function renderRoomList() {
+            const container = document.getElementById('roomList');
+            if (!container) return;
+
+            if (rooms.length === 0) {
+                container.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-secondary); font-size: 12px;">暂无历史对话</div>';
+                return;
+            }
+
+            container.innerHTML = rooms.map(room => `
+                <div class="room-item ${room.id === currentRoomId ? 'active' : ''}" 
+                     onclick="switchRoom('${room.id}')" 
+                     data-room-id="${room.id}">
+                    <span class="room-icon">💬</span>
+                    <div class="room-info">
+                        <div class="room-name">${room.name || '未命名对话'}</div>
+                        <div class="room-meta">${room.message_count || 0} 条消息 · ${formatDate(room.updated_at)}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function switchRoom(roomId) {
+            if (roomId === currentRoomId) return;
+            await loadRoom(roomId);
+            renderRoomList();
+        }
+
+        async function loadRooms() {
+            try {
+                const res = await fetch(`${API_BASE}/rooms`);
+                const data = await res.json();
+                if (data.success) {
+                    rooms = data.rooms;
+                    renderRoomList();
+                }
+            } catch (e) {
+                console.error('Failed to load rooms:', e);
+            }
+        }
+
+        async function createRoom(name = null) {
+            try {
+                const res = await fetch(`${API_BASE}/rooms`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    currentRoomId = data.room.id;
+                    chatHistory = [];
+                    document.getElementById('chatMessages').innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">💬</div>
+                            <h3>新聊天室已创建</h3>
+                            <p>ID: ${currentRoomId.substring(0, 8)}...</p>
+                        </div>
+                    `;
+                    showToast(`聊天室已创建`);
+                    await loadRooms();
+                    return data.room;
+                }
+            } catch (e) {
+                showToast('创建聊天室失败');
+            }
+            return null;
+        }
+
+        async function loadRoom(roomId) {
+            try {
+                const res = await fetch(`${API_BASE}/rooms/${roomId}`);
+                const data = await res.json();
+                if (data.success) {
+                    currentRoomId = roomId;
+                    chatHistory = [];
+
+                    // Clear and reload messages
+                    const container = document.getElementById('chatMessages');
+                    container.innerHTML = '';
+
+                    if (data.room.messages && data.room.messages.length > 0) {
+                        const agentMap = { '1': '1', '2': '2', '3': '3' };
+                        data.room.messages.forEach(msg => {
+                            if (msg.sender === 'user') {
+                                addMessage(msg.content, 'user');
+                            } else {
+                                addMessage(msg.content, 'agent', msg.sender);
+                            }
+                        });
+                    } else {
+                        container.innerHTML = `
+                            <div class="empty-state">
+                                <div class="icon">💬</div>
+                                <h3>聊天室已加载</h3>
+                                <p>继续之前的对话</p>
+                            </div>
+                        `;
+                    }
+
+                    showToast('聊天室已加载');
+                    return data.room;
+                }
+            } catch (e) {
+                showToast('加载聊天室失败');
+            }
+            return null;
+        }
+
+        async function restoreRoom(roomId) {
+            showToast('正在恢复聊天室...');
+            try {
+                const res = await fetch(`${API_BASE}/rooms/${roomId}/restore`, {
+                    method: 'POST'
+                });
+                const data = await res.json();
+                if (data.success) {
+                    await loadRoom(roomId);
+                    showToast(`已恢复 ${data.restored.length} 个 Agent 对话`);
+                }
+            } catch (e) {
+                showToast('恢复聊天室失败');
+            }
+        }
+
         // Init
-        checkHealth();
+        async function init() {
+            await loadRooms();
+
+            // Auto-create a room if none exists
+            if (rooms.length === 0) {
+                await createRoom();
+            } else {
+                // Load the most recent room
+                await loadRoom(rooms[0].id);
+            }
+
+            checkHealth();
+        }
+
+        init();
         setInterval(checkHealth, 30000);
     </script>
 </body>
