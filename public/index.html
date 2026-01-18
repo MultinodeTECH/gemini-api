@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gemini Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #2a2a2a;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #8b5cf6;
+            --user-bubble: #3b82f6;
+            --ai-bubble: #2a2a2a;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--accent) 0%, #6366f1 100%);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .header-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .header-btn:active {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Account Selector Bar */
+        .account-bar {
+            background: var(--bg-secondary);
+            padding: 10px 16px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--bg-tertiary);
+            flex-shrink: 0;
+        }
+
+        .account-btn {
+            background: var(--bg-tertiary);
+            border: none;
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .account-btn.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .account-btn .dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .account-btn .dot.online {
+            background: #22c55e;
+        }
+
+        .account-btn .dot.offline {
+            background: #6b7280;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.5;
+            font-size: 15px;
+            animation: fadeIn 0.3s ease;
+            white-space: pre-wrap;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            background: var(--user-bubble);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai {
+            background: var(--ai-bubble);
+            color: var(--text-primary);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.loading {
+            display: flex;
+            gap: 4px;
+            padding: 16px 20px;
+        }
+
+        .message.loading span {
+            width: 8px;
+            height: 8px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .message.loading span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .message.loading span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0);
+            }
+
+            40% {
+                transform: scale(1);
+            }
+        }
+
+        .input-container {
+            background: var(--bg-secondary);
+            padding: 12px 16px;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+            border-top: 1px solid var(--bg-tertiary);
+            flex-shrink: 0;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .input-wrapper textarea {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: none;
+            border-radius: 24px;
+            padding: 12px 18px;
+            color: var(--text-primary);
+            font-size: 16px;
+            resize: none;
+            max-height: 120px;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .input-wrapper textarea::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .send-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .send-btn:disabled {
+            background: var(--bg-tertiary);
+            cursor: not-allowed;
+        }
+
+        .status {
+            text-align: center;
+            padding: 6px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            background: var(--bg-secondary);
+        }
+
+        .status.error {
+            color: #ef4444;
+        }
+
+        .status.connected {
+            color: #22c55e;
+        }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            gap: 12px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 100;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>✨ Gemini</h1>
+        <div class="header-actions">
+            <button class="header-btn" onclick="startNewChat()">🔄 新对话</button>
+        </div>
+    </div>
+
+    <div class="account-bar" id="accountBar">
+        <button class="account-btn active" data-account="0" onclick="selectAccount('0')">
+            <span class="dot offline"></span>账号 1
+        </button>
+        <button class="account-btn" data-account="1" onclick="selectAccount('1')">
+            <span class="dot offline"></span>账号 2
+        </button>
+        <button class="account-btn" data-account="2" onclick="selectAccount('2')">
+            <span class="dot offline"></span>账号 3
+        </button>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="empty-state" id="emptyState">
+            <div class="icon">💬</div>
+            <div>发送消息开始对话</div>
+            <div style="font-size: 13px; opacity: 0.7;">当前: 账号 1</div>
+        </div>
+    </div>
+
+    <div class="status" id="status">连接中...</div>
+
+    <div class="input-container">
+        <div class="input-wrapper">
+            <textarea id="messageInput" placeholder="输入消息..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let isLoading = false;
+        let currentAccount = '0';
+        let activeAccounts = [];
+
+        // Store chat history per account
+        const chatHistory = { '0': [], '1': [], '2': [] };
+
+        const textarea = document.getElementById('messageInput');
+        textarea.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        function selectAccount(accountId) {
+            currentAccount = accountId;
+
+            // Update button states
+            document.querySelectorAll('.account-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.account === accountId);
+            });
+
+            // Render chat history for this account
+            renderChatHistory();
+
+            showToast(`已切换到账号 ${parseInt(accountId) + 1}`);
+        }
+
+        function renderChatHistory() {
+            const container = document.getElementById('chatContainer');
+            const history = chatHistory[currentAccount];
+
+            if (history.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" id="emptyState">
+                        <div class="icon">💬</div>
+                        <div>发送消息开始对话</div>
+                        <div style="font-size: 13px; opacity: 0.7;">当前: 账号 ${parseInt(currentAccount) + 1}</div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '';
+                history.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = `message ${msg.isUser ? 'user' : 'ai'}`;
+                    div.textContent = msg.text;
+                    container.appendChild(div);
+                });
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        async function startNewChat() {
+            try {
+                await fetch(`${API_BASE}/new-chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ account: currentAccount })
+                });
+
+                chatHistory[currentAccount] = [];
+                renderChatHistory();
+                showToast('已开始新对话');
+            } catch (e) {
+                showToast('开始新对话失败');
+            }
+        }
+
+        async function checkHealth() {
+            try {
+                const res = await fetch(`${API_BASE}/health`);
+                const data = await res.json();
+
+                if (data.status === 'ok') {
+                    document.getElementById('status').textContent = '✓ 已连接';
+                    document.getElementById('status').className = 'status connected';
+
+                    // Update active account indicators
+                    activeAccounts = data.activeAccounts || [];
+                    updateAccountStatus();
+                }
+            } catch (e) {
+                document.getElementById('status').textContent = '✗ 连接失败';
+                document.getElementById('status').className = 'status error';
+            }
+        }
+
+        function updateAccountStatus() {
+            document.querySelectorAll('.account-btn').forEach(btn => {
+                const dot = btn.querySelector('.dot');
+                const isActive = activeAccounts.includes(btn.dataset.account);
+                dot.className = `dot ${isActive ? 'online' : 'offline'}`;
+            });
+        }
+
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function addMessage(text, isUser) {
+            const container = document.getElementById('chatContainer');
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) emptyState.remove();
+
+            // Save to history
+            chatHistory[currentAccount].push({ text, isUser });
+
+            const msg = document.createElement('div');
+            msg.className = `message ${isUser ? 'user' : 'ai'}`;
+            msg.textContent = text;
+            container.appendChild(msg);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function addLoading() {
+            const container = document.getElementById('chatContainer');
+            const msg = document.createElement('div');
+            msg.className = 'message ai loading';
+            msg.id = 'loadingMsg';
+            msg.innerHTML = '<span></span><span></span><span></span>';
+            container.appendChild(msg);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function removeLoading() {
+            const loading = document.getElementById('loadingMsg');
+            if (loading) loading.remove();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message || isLoading) return;
+
+            isLoading = true;
+            document.getElementById('sendBtn').disabled = true;
+
+            addMessage(message, true);
+            input.value = '';
+            input.style.height = 'auto';
+
+            addLoading();
+
+            try {
+                const res = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message,
+                        account: currentAccount
+                    })
+                });
+
+                removeLoading();
+
+                const data = await res.json();
+                if (data.success) {
+                    addMessage(data.response, false);
+                    // Refresh account status
+                    checkHealth();
+                } else {
+                    addMessage('❌ ' + (data.error || '发送失败'), false);
+                }
+            } catch (e) {
+                removeLoading();
+                addMessage('❌ 网络错误', false);
+            }
+
+            isLoading = false;
+            document.getElementById('sendBtn').disabled = false;
+            input.focus();
+        }
+
+        // Init
+        checkHealth();
+        setInterval(checkHealth, 30000);
+    </script>
+</body>
+
+</html>
